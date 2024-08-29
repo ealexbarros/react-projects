@@ -28,6 +28,8 @@ const PJUSalarySimulator = () => {
 
   const [result, setResult] = useState(null);
 
+  const auxilioAlimentacao = 1393.10;
+
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setFormData(prevData => ({
@@ -133,6 +135,8 @@ const PJUSalarySimulator = () => {
     } else if (data.comissao === 'cj' && data.comissaoTipo) {
       totalSalary += cjValues[data.comissaoTipo];
     }
+ // Adicione o auxílio alimentação
+    totalSalary += auxilioAlimentacao;
 
     return { totalSalary, nivel, base, gaj };
   };
@@ -277,6 +281,7 @@ const PJUSalarySimulator = () => {
           <Typography>Nível: {result.nivel}</Typography>
           <Typography>Salário Base: R$ {result.base.toFixed(2)}</Typography>
           <Typography>GAJ: R$ {result.gaj.toFixed(2)}</Typography>
+          <Typography>Auxílio Alimentação: R$ {result.auxilioAlimentacao.toFixed(2)}</Typography>
           <Typography>Remuneração Total: R$ {result.totalSalary.toFixed(2)}</Typography>
         </Box>
       )}
