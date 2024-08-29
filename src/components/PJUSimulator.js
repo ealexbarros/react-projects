@@ -10,13 +10,16 @@ import {
   Box, 
   RadioGroup,
   Radio,
-  FormControlLabel 
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 
 const PJUSalarySimulator = () => {
   const [formData, setFormData] = useState({
     cargo: 'analista',
-    anosTrabalho: 0,
+    nivelOuData: 'nivel',
+    nivel: 1,
+    dataIngresso: '',
     adicionalQualificacao: '',
     adicionalTreinamento: '',
     comissao: 'nenhuma',
@@ -32,7 +35,6 @@ const PJUSalarySimulator = () => {
       [name]: value
     }));
 
-    // Reset comissaoTipo if comissao changes
     if (name === 'comissao') {
       setFormData(prevData => ({
         ...prevData,
@@ -79,9 +81,33 @@ const PJUSalarySimulator = () => {
     { nivel: 1, base: 3554.02, gaj: 4975.63 },
   ];
 
+  const fcValues = {
+    'FC-06': 3452.10,
+    'FC-05': 2508.30,
+    'FC-04': 2179.66,
+    'FC-03': 1549.52,
+    'FC-02': 1331.52,
+    'FC-01': 1145.14,
+  };
+
+  const cjValues = {
+    'CJ-04': 10668.61,
+    'CJ-03': 9450.62,
+    'CJ-02': 8313.37,
+    'CJ-01': 6731.35,
+  };
+
   const calculateSalary = (data) => {
     const salaryTable = data.cargo === 'analista' ? analistaSalaryTable : tecnicoSalaryTable;
-    const nivel = Math.min(Math.max(data.anosTrabalho, 1), 13);
+    let nivel;
+    
+    if (data.nivelOuData === 'nivel') {
+      nivel = parseInt(data.nivel);
+    } else {
+      const yearsSinceJoining = new Date().getFullYear() - new Date(data.dataIngresso).getFullYear();
+      nivel = Math.min(Math.max(yearsSinceJoining + 1, 1), 13);
+    }
+
     const { base, gaj } = salaryTable.find(item => item.nivel === nivel);
     
     let totalSalary = base + gaj;
@@ -101,9 +127,14 @@ const PJUSalarySimulator = () => {
       totalSalary += base * (parseInt(data.adicionalTreinamento) / 100);
     }
 
-    // Aqui você pode adicionar a lógica para FC e CJ quando tiver os valores específicos
+    // FC e CJ
+    if (data.comissao === 'fc' && data.comissaoTipo) {
+      totalSalary += fcValues[data.comissaoTipo];
+    } else if (data.comissao === 'cj' && data.comissaoTipo) {
+      totalSalary += cjValues[data.comissaoTipo];
+    }
 
-    return totalSalary;
+    return { totalSalary, nivel, base, gaj };
   };
 
   return (
@@ -125,16 +156,43 @@ const PJUSalarySimulator = () => {
         </Select>
       </FormControl>
 
-      <TextField
-        fullWidth
-        margin="normal"
-        label="Anos de Trabalho"
-        name="anosTrabalho"
-        type="number"
-        value={formData.anosTrabalho}
-        onChange={handleInputChange}
-        required
+      <FormControlLabel
+        control={
+          <Switch
+            checked={formData.nivelOuData === 'data'}
+            onChange={(e) => setFormData(prev => ({ ...prev, nivelOuData: e.target.checked ? 'data' : 'nivel' }))}
+          />
+        }
+        label="Usar data de ingresso"
       />
+
+      {formData.nivelOuData === 'nivel' ? (
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Nível</InputLabel>
+          <Select
+            name="nivel"
+            value={formData.nivel}
+            onChange={handleInputChange}
+            required
+          >
+            {[...Array(13)].map((_, i) => (
+              <MenuItem key={i+1} value={i+1}>{i+1}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      ) : (
+        <TextField
+          fullWidth
+          margin="normal"
+          label="Data de Ingresso"
+          type="date"
+          name="dataIngresso"
+          value={formData.dataIngresso}
+          onChange={handleInputChange}
+          InputLabelProps={{ shrink: true }}
+          required
+        />
+      )}
 
       <FormControl fullWidth margin="normal">
         <InputLabel>Adicional de Qualificação</InputLabel>
@@ -186,12 +244,9 @@ const PJUSalarySimulator = () => {
             onChange={handleInputChange}
             required
           >
-            <MenuItem value="FC-01">FC-01</MenuItem>
-            <MenuItem value="FC-02">FC-02</MenuItem>
-            <MenuItem value="FC-03">FC-03</MenuItem>
-            <MenuItem value="FC-04">FC-04</MenuItem>
-            <MenuItem value="FC-05">FC-05</MenuItem>
-            <MenuItem value="FC-06">FC-06</MenuItem>
+            {Object.keys(fcValues).map((fc) => (
+              <MenuItem key={fc} value={fc}>{fc}</MenuItem>
+            ))}
           </Select>
         </FormControl>
       )}
@@ -205,10 +260,9 @@ const PJUSalarySimulator = () => {
             onChange={handleInputChange}
             required
           >
-            <MenuItem value="CJ-01">CJ-01</MenuItem>
-            <MenuItem value="CJ-02">CJ-02</MenuItem>
-            <MenuItem value="CJ-03">CJ-03</MenuItem>
-            <MenuItem value="CJ-04">CJ-04</MenuItem>
+            {Object.keys(cjValues).map((cj) => (
+              <MenuItem key={cj} value={cj}>{cj}</MenuItem>
+            ))}
           </Select>
         </FormControl>
       )}
@@ -220,7 +274,10 @@ const PJUSalarySimulator = () => {
       {result && (
         <Box sx={{ mt: 3 }}>
           <Typography variant="h6">Resultado da Simulação:</Typography>
-          <Typography>Remuneração Total: R$ {result.toFixed(2)}</Typography>
+          <Typography>Nível: {result.nivel}</Typography>
+          <Typography>Salário Base: R$ {result.base.toFixed(2)}</Typography>
+          <Typography>GAJ: R$ {result.gaj.toFixed(2)}</Typography>
+          <Typography>Remuneração Total: R$ {result.totalSalary.toFixed(2)}</Typography>
         </Box>
       )}
     </Box>
